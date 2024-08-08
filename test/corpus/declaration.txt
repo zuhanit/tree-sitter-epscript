@@ -1,0 +1,38 @@
+==========================
+Variable Declaration
+==========================
+
+var a;
+var a, b = 1, 2;
+const c;
+
+---
+
+(program
+      (variable_declaration
+        name: (identifier))
+      (variable_declaration
+        name: (identifier)
+        name: (identifier)
+        (initializer
+          value: (number)
+          value: (number)))
+      (variable_declaration
+        name: (identifier)))
+
+==========================
+Array Declaration
+==========================
+
+const a = [1, 2, 3];
+
+---
+
+(program
+  (variable_declaration
+    (identifier)
+    (initializer
+      (array
+        (number)
+        (number)
+        (number)))))

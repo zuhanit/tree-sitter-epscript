@@ -1,0 +1,265 @@
+==========================
+Normal import statement
+==========================
+
+import A;
+import A as B;
+import A.B;
+
+---
+
+(program
+  (import_statement
+    (dotted_name
+      (identifier)))
+  (import_statement
+    (dotted_name
+      (identifier))
+    (aliased_import
+      (identifier)))
+  (import_statement
+    (dotted_name
+      (identifier)
+      (identifier))))
+          
+==========================
+Relative import statement
+==========================
+
+import ..c;
+import ..folder.b;
+
+import .inner.a;
+
+import ...c;
+
+import ...c as d;
+
+---
+
+(program
+  (import_statement
+    (import_prefix)
+    (dotted_name
+      (identifier)))
+  (import_statement
+    (import_prefix)
+    (dotted_name
+      (identifier)
+      (identifier)))
+  (import_statement
+    (import_prefix)
+    (dotted_name
+      (identifier)
+      (identifier)))
+  (import_statement
+    (import_prefix)
+    (dotted_name
+      (identifier)))
+  (import_statement
+    (import_prefix)
+    (dotted_name
+      (identifier))
+    (aliased_import
+      (identifier))))
+
+==========================
+If statements
+==========================
+
+if (x)
+  log(y);
+  
+if (a.b) {
+  log(c);
+  d;
+}
+
+if (n==1) {}
+
+---
+
+(program
+      (if_statement
+        (parenthesized_expression
+          (identifier))
+        (expression_statement
+          (call_expression
+            (identifier)
+            (arguments
+              (identifier)))))
+      (if_statement
+        (parenthesized_expression
+          (member_expression
+            (identifier)
+            (property_identifier)))
+        (statement_block
+          (expression_statement
+            (call_expression
+              (identifier)
+              (arguments
+                (identifier))))
+          (expression_statement
+            (identifier))))
+      (if_statement
+        (parenthesized_expression
+          (binary_expression
+            (identifier)
+            (number)))
+        (statement_block)))
+
+============================================
+If-else statements
+============================================
+
+if (x)
+  y;
+else if (a)
+  b;
+
+if (a) {
+  c;
+  d;
+} else {
+  e;
+}
+
+----
+
+(program
+      (if_statement
+        (parenthesized_expression
+          (identifier))
+        (expression_statement
+          (identifier))
+        (else_clause
+          (if_statement
+            (parenthesized_expression
+              (identifier))
+            (expression_statement
+              (identifier)))))
+      (if_statement
+        (parenthesized_expression
+          (identifier))
+        (statement_block
+          (expression_statement
+            (identifier))
+          (expression_statement
+            (identifier)))
+        (else_clause
+          (statement_block
+            (expression_statement
+              (identifier))))))
+
+==========================
+Switch statements
+==========================
+
+switch (x) {
+  case 1:
+  case 2:
+    something();
+    break;
+  case "three":
+    somethingElse();
+    break;
+  default:
+    return 4;
+}
+
+---
+
+(program
+  (switch_statement
+    (parenthesized_expression
+      (identifier))
+    (switch_body
+      (switch_case
+        (number))
+      (switch_case
+        (number)
+        (expression_statement
+          (call_expression
+            (identifier)
+            (arguments)))
+        (break_statement))
+      (switch_case
+        (string
+          (string_fragment))
+        (expression_statement
+          (call_expression
+            (identifier)
+            (arguments)))
+        (break_statement))
+      (switch_default
+        (return_statement
+          (number))))))
+
+============================================
+For statements
+============================================
+
+for (var a, b = 0; a < 10; a++);
+
+---
+
+(program
+      (for_statement
+        initializer: (variable_declaration
+          name: (identifier)
+          name: (identifier)
+          (initializer
+            value: (number)))
+        condition: (expression_statement
+          (binary_expression
+            left: (identifier)
+            right: (number)))
+        increment: (update_expression
+          argument: (identifier))
+        body: (empty_statement)))
+        
+============================================
+Foreach statements
+============================================
+
+foreach (a, b : c, d) {
+
+}
+
+---
+
+(program
+      (foreach_statement
+        initializer: (names
+          (identifier)
+          (identifier))
+        generator: (sequence_expression
+          (identifier)
+          (identifier))
+        body: (statement_block)))
+        
+============================================
+While statements
+============================================
+
+while (a)
+  b();
+  
+while (a) {
+
+}
+
+---
+
+(program
+      (while_statement
+        condition: (parenthesized_expression
+          (identifier))
+        body: (expression_statement
+          (call_expression
+            function: (identifier)
+            arguments: (arguments))))
+      (while_statement
+        condition: (parenthesized_expression
+          (identifier))
+        body: (statement_block)))
