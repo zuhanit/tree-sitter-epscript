@@ -1,0 +1,96 @@
+import .BGM_eps_test;
+import .test_eps_stattext as stat;
+import py_math;
+import py_sys;
+var x = 1 << 4;
+EUDOnStart(function () { x += x; });
+object ParticleBag extends EUDStruct {
+    var a;
+    var b;
+};
+object ObjectWithTooManyFields {
+    var v0, v1, v2, v3, v4, v5, v6, v7, v8, v9;
+};
+object ClassInheritingBigObj extends ObjectWithTooManyFields {
+    var v10;
+};
+
+function test_compatibility() {
+    py_exec("from helper import *\n\
+with expect_eperror():\n\
+    ClassInheritingBigObj.alloc()\n\
+");
+    static var ret = 0;
+    const empty = Db(i2b4(0));
+    const cond = Forward();
+
+    py_exec("from helper import *\n\
+with expect_eperror():\n\
+    Trigger(cond, ret.AddNumber(1 << 0))\n\
+with expect_eperror():\n\
+    Trigger(empty, ret.AddNumber(1 << 1))\n\
+with expect_eperror():\n\
+    Trigger(empty + 1, ret.AddNumber(1 << 2))\n\
+with expect_eperror():\n\
+    SetVariables(ret, -1, EUDVariable(EncodeModifier(SetTo)))\n\
+");
+    py_exec("from helper import *\n\
+with expect_eperror():\n\
+    SetVariables(EUDVariable(), 1)\n\
+with expect_eperror():\n\
+    SetVariables(f_dwread_epd(0), 1)\n\
+pv = PVariable()\n\
+with expect_eperror():\n\
+    SetVariables(pv[0], 1)\n\
+");
+    const tc = GetTriggerCounter();
+    var x0 = EUDVariable(0);
+    ep_assert(tc == GetTriggerCounter(), "Fail to elide var copy");
+
+    var x1 = list(EUDVariable(0));
+    ep_assert(tc == GetTriggerCounter(), "Fail to elide var copy");
+
+    var x2 = list(list(EUDVariable(0)));
+    ep_assert(tc == GetTriggerCounter(), "Fail to elide var copy");
+
+    var x3 = ExprProxy(EUDVariable(0));
+    ep_assert(tc == GetTriggerCounter(), "Fail to elide var copy");
+
+    var x4 = ExprProxy(ExprProxy(EUDVariable(0)));
+    ep_assert(tc == GetTriggerCounter(), "Fail to elide var copy");
+
+    var x5, y5 = EUDVariable(0), EUDVariable(0);
+    ep_assert(tc == GetTriggerCounter(), "Fail to elide var copy");
+
+    var x6, y6 = list(EUDVariable(0), EUDVariable(0));
+    ep_assert(tc == GetTriggerCounter(), "Fail to elide var copy");
+
+    var x7, y7, z7 = EUDCreateVariables(3);
+    ep_assert(tc == GetTriggerCounter(), "Fail to elide var copy");
+
+    const vlist = EUDCreateVariables(3);
+    var x8, y8, z8 = vlist;
+    ep_assert(tc + 1 == GetTriggerCounter(), "Wrongly elide var copy");
+
+    const tc2 = GetTriggerCounter();
+    var x9, y9, z9 = list(vlist[2], vlist[1], vlist[0]);
+    ep_assert(tc2 + 1 == GetTriggerCounter(), "Wrongly elide var copy");
+
+    const tc3 = GetTriggerCounter();
+    var x10 = dwread_epd(0);
+    ep_assert(tc3 + 1 == GetTriggerCounter(), "Fail to elide var copy");
+
+    const foo = function () : TrgUnit { return 0; };
+    foo();  // create function body
+    const tc4 = GetTriggerCounter();
+    var baar = foo();
+    ep_assert(tc4 + 1 == GetTriggerCounter(), "Fail to elide var copy");
+
+    cond.__lshift__(Memory(empty, AtLeast, 1));
+    if (cond) { ret += 1 << 3; }
+    ret += x;
+    if(Is64BitWireframe()) {}
+    var z = EUDVariable();
+    math.cos(1);
+    return ret;
+}

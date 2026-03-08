@@ -1,0 +1,120 @@
+var x: CUnit = 0;
+function test_cunit1() {
+    x = 0;
+    const get_epd = py_eval("lambda x: x if x._value._is_epd() else EPD(x)");
+    const cspritePtr = 0x629D98 + 36 * 1;  // Sprite Table
+    const sp = [0x2468ACE0, 0x13579BDF, 0xFEDCBA98, 0x76543210];
+    repmovsd_epd(EPD(cspritePtr), get_epd(sp), 4);
+    const a = [
+          0,  -1,  -2,  cspritePtr,  -4,  -5,  -6,  -7,  -8, -9,
+        -10, -11, -12, -13, -14, -15, -16, -17, -18, 0x12345607,
+        0x89ABCDEF, 0xEDACEDAC, 0xEDACEDAC, 0xEDACEDAC, 0x220011, 0x440033, 0xFFFF0055, 0, 0, 0,
+        3, 3, 3, 3, 3, 3, 3, 3, 0x220011, 0x440033,
+        0xFFFF0055, 4, 4, 4, 4, 4, 4, 4, 4, 4,
+        5, 5, 5, 5, 5, 5, 5, 5, 5, 5,
+    ];
+    const u = CUnit.cast(EUDVariable(get_epd(a)));
+    py_exec("\n\
+from helper import expect_error\n\
+with expect_error(AttributeError):\n\
+    u.zzt = 1\n\
+");
+    var ret = 0;
+    if (u.order == 0x56) ret += 1;
+    if (u.owner == P8) ret += 2;
+    if (u.orderState == 0x34) ret += 4;
+    if (u.orderSignal == 0x12) ret += 8;
+
+    if (u.orderUnitType == 0xCDEF) ret += 16;
+    wwrite_epd(get_epd(a) + 0x50/4, 0, $U("Artanis"));
+    if (u.orderUnitType == py_str("Artanis")) ret += 32;
+    u.set_color(P12);
+    if (Memory(cspritePtr + 8, Exactly, 0xFE0BBA98)) ret += 64;
+    u.cgive(P2);
+    if (u.owner == P2) ret += 128;
+
+    u.die();
+    if (a[0x4C/4] == 0x12340001) ret += 256;
+    if (u.is_dying()) ret += 512;
+    if (!u.are_buildq_empty()) ret += 1024;
+    if (u.check_buildq(EUDVariable(0x11))) ret += 2048;
+
+    if (u.check_buildq("Terran Medic")) ret += 4096;
+    if (u.check_buildq(EUDVariable(0x33))) ret += 8192;
+    if (u.check_buildq("Protoss Archon")) ret += 16384;
+    if (u.check_buildq("Protoss Scarab")) ret += 32768;
+
+    u.reset_buildq();
+    if (u.are_buildq_empty()) ret += 65536;
+    var d = u.movementFlags;
+    if (d == 0xF8) ret += 1 << 17;
+    u.movementFlags += 1;
+    if (u.movementFlags == 0xF9) ret += 1 << 18;
+    return ret;
+}
+function test_cunit2() {
+    const trgCount = GetTriggerCounter();
+    const u = CUnit.cast(EUDVariable(EPD(0x59CCA8 + 336)));
+    ep_assert(trgCount == GetTriggerCounter());
+    var ret = 0;
+
+    u.orderQueueCount = 123;
+    if (u.orderQueueCount == 123) ret += 1;
+    u.orderQueueCount = 0;
+    if (u.orderQueueCount == 0) ret += 2;
+
+    u.currentDirection1 = 234;
+    if (u.currentDirection1 == 234) ret += 4;
+    u.currentDirection1 = 0;
+    if (u.currentDirection1 == 0) ret += 8;
+
+    u.turnRadius = 34;
+    if (u.turnRadius == 34) ret += 16;
+    u.turnRadius = 0;
+    if (u.turnRadius == 0) ret += 32;
+
+    u.velocityDirection1 = 45;
+    if (u.velocityDirection1 == 45) ret += 64;
+    u.velocityDirection1 = 0;
+    if (u.velocityDirection1 == 0) ret += 128;
+
+    u.energy = 567;
+    if (u.energy == 567) ret += 256;
+    u.energy = 0;
+    if (u.energy == 0) ret += 512;
+
+    u.acceleration = 678;
+    if (u.acceleration == 678) ret += 1024;
+    u.acceleration = 0;
+    if (u.acceleration == 0) ret += 2048;
+
+    u.remove();
+    if (u.order == 0 && u.userActionFlags & 4) ret += 4096;
+
+    return ret;
+}
+function test_scdata() {
+    (Upgrade("Protoss Ground Weapons"))[P1] = 88;
+
+    var ret = 0;
+    const u = CUnit(EPD(0x59CCA8) + 84);
+    u.orderTarget = CUnit(EUDVariable(0));
+    if (u.orderTarget == 0) ret += 1;
+    const x = CUnit(EUDVariable(EPD(0x59CCA8)));
+    u.orderTarget = x;
+    if (u.orderTarget == 0x59CCA8) ret += 2;
+    if (Memory(0x59CCA8 + 336 + 0x5C, Exactly, 0x59CCA8)) ret += 4;
+    if (u.orderTarget == x) ret += 8;
+
+    const testStatic = function () {
+        const trgCount = GetTriggerCounter();
+        static var unit: CUnit = 0;
+        ep_assert(trgCount == GetTriggerCounter());
+        unit += 1;
+        return unit;
+    };
+    for(var n = 0 ; n < 11 ; n++) {
+        testStatic();
+    }
+    return ret, testStatic();
+}
