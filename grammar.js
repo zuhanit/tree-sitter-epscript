@@ -19,20 +19,27 @@ module.exports = grammar({
     // @ts-ignore
     /[\s\p{Zs}\\FEFF\u2028\u2029\u2060\u200B]/
   ],
-  
+
   supertypes: $ => [
     $.statement,
     $.declaration,
     $.expression,
     $.primary_expression
   ],
-  
+
   inline: $ => [
     $._expressions,
   ],
-  
+
+  conflicts: $ => [
+    [$.once_statement, $.parenthesized_expression],
+    [$.typed_name, $.assignment_expression],
+    [$.primary_expression, $.double_subscript_expression],
+  ],
+
   precedences: $ => [
     [
+      "double_subscript",
       "call",
       $.update_expression,
       "unary_void",
@@ -53,16 +60,21 @@ module.exports = grammar({
     [$.primary_expression, $.statement_block, "object"],
     ["declaration", "literal"],
   ],
-  
+
   rules: {
     program: ($) => repeat($.statement),
- 
+
     declaration: $ => choice(
       $.function_declaration,
+      $.function_forward_declaration,
       $.object_declaration,
-      $.variable_declaration,
+      $.object_forward_declaration,
+      $.var_declaration,
+      $.var_assign_declaration,
+      $.static_var_declaration,
+      $.const_declaration,
     ),
-    
+
     import_statement: $ =>
       seq(
         "import",
@@ -71,28 +83,28 @@ module.exports = grammar({
         optional($.aliased_import),
         $._semicolon,
       ),
-    
+
     import_prefix: _ => repeat1("."),
-    
+
     aliased_import: $ => seq(
       "as",
       field("alias", $.identifier)
     ),
-    
+
     dotted_name: $ => prec(1, sep1($.identifier, ".")),
-  
+
     //
     // Statements
     //
 
     statement: ($) => choice(
       $.import_statement,
-      
+
       $.declaration,
       $.statement_block,
       // In original epScript, solely use expression is invalid. You can comment this statement
       // for parse actually in epScript.
-      $.expression_statement, 
+      $.expression_statement,
 
       // Branch Statements
       $.if_statement,
@@ -102,25 +114,27 @@ module.exports = grammar({
       $.continue_statement,
       $.break_statement,
       $.return_statement,
-      // $.function_call_expression,
 
       // Loop Statements
       $.while_statement,
       $.for_statement,
       $.foreach_statement,
-      
+
+      // Once Statement
+      $.once_statement,
+
       $.empty_statement
     ),
 
     expression_statement: $ => seq($._expressions, $._semicolon),
- 
+
     else_clause: $ => seq("else", $.statement),
-    
+
     statement_block: $ =>
       prec.right(
         seq("{", repeat($.statement), "}")
       ),
-    
+
     if_statement: $ => seq(
       prec.right(
         seq(
@@ -131,11 +145,11 @@ module.exports = grammar({
         )
       )
     ),
-    
+
     switch_body: $ => seq(
       seq("{", repeat(choice($.switch_case, $.switch_default)), "}")
     ),
-    
+
     switch_case: $ =>
       seq(
         "case",
@@ -149,19 +163,19 @@ module.exports = grammar({
 
     switch_statement: $ => seq(
       seq(
-        choice("switch", "epdswitch"),
+        field("keyword", choice("switch", "epdswitch", "switchcase")),
         field("value", $.parenthesized_expression),
         field("body", $.switch_body)
       )
     ),
-    
+
     while_statement: $ =>
       seq(
         "while",
         field("condition", $.parenthesized_expression),
         field("body", $.statement)
       ),
-    
+
     foreach_statement: $ =>
       seq(
         "foreach",
@@ -172,7 +186,7 @@ module.exports = grammar({
         ")",
         field("body", $.statement)
       ),
-    
+
     for_statement: $ =>
       seq(
         "for",
@@ -180,7 +194,9 @@ module.exports = grammar({
         field(
           "initializer",
           choice(
-            $.variable_declaration,
+            $.var_declaration,
+            $.var_assign_declaration,
+            $.const_declaration,
             $.empty_statement
           )
         ),
@@ -192,7 +208,7 @@ module.exports = grammar({
 
     return_statement: $ =>
       seq("return", optional($._expressions), $._semicolon),
-    
+
     continue_statement: $ =>
       seq(
         seq(
@@ -206,9 +222,14 @@ module.exports = grammar({
         "break",
         $._semicolon
       ),
-    
+
+    once_statement: $ => choice(
+      seq("once", "(", field("condition", $.expression), ")", field("body", $.statement)),
+      seq("once", field("body", $.statement)),
+    ),
+
     empty_statement: _ => ";",
-    
+
 
     //
     // Declarations
@@ -216,27 +237,89 @@ module.exports = grammar({
 
     function_declaration: $ => seq(
       "function",
-      seq(
-        field("name", $.identifier),
-        field("body", $.statement_block)
-      )
+      field("name", $.identifier),
+      field("parameters", $.function_parameters),
+      optional(field("return_type", $.function_return_types)),
+      field("body", $.statement_block)
     ),
 
-    object_declaration: $ => seq("mytest"),
-
-    variable_declaration: $ => seq(
-      optional("static"),
-      field("kind", choice("var", "const")),
-      field("name", commaSep1($.identifier)),
-      optional($.initializer),
+    function_forward_declaration: $ => seq(
+      "function",
+      field("name", $.identifier),
+      field("parameters", $.function_parameters),
+      optional(field("return_type", $.function_return_types)),
       $._semicolon
     ),
-    
-     
+
+    function_parameters: $ => seq("(", optional($.typed_name_list), ")"),
+
+    function_return_types: $ => seq(":", commaSep1($.expression)),
+
+    object_declaration: $ => seq(
+      "object",
+      field("name", $.identifier),
+      optional(seq("extends", field("superclass", $.expression))),
+      "{",
+      repeat($.object_member),
+      "}",
+      $._semicolon
+    ),
+
+    object_forward_declaration: $ => seq(
+      "object",
+      field("name", $.identifier),
+      optional(seq("extends", field("superclass", $.expression))),
+      $._semicolon
+    ),
+
+    object_member: $ => choice(
+      $.object_field_declaration,
+      $.object_method_declaration,
+    ),
+
+    object_field_declaration: $ => seq(
+      "var", field("declarators", $.typed_name_list), $._semicolon
+    ),
+
+    object_method_declaration: $ => seq(
+      "function",
+      field("name", $.identifier),
+      field("parameters", $.function_parameters),
+      optional(field("return_type", $.function_return_types)),
+      field("body", $.statement_block)
+    ),
+
+    // var a, b;  (no initializer)
+    var_declaration: $ => seq(
+      "var", $.typed_name_list, $._semicolon
+    ),
+
+    // var a, b = 1, 2;  (with initializer)
+    var_assign_declaration: $ => seq(
+      "var", $.typed_name_list, $.initializer, $._semicolon
+    ),
+
+    // static var a, b = 1, 2;  (static requires initializer)
+    static_var_declaration: $ => seq(
+      "static", "var", $.typed_name_list, $.initializer, $._semicolon
+    ),
+
+    // const a, b = 1, 2;  (const uses names only, requires initializer)
+    const_declaration: $ => seq(
+      "const", $.names, $.initializer, $._semicolon
+    ),
+
+    typed_name: $ => prec(1, choice(
+      field("name", $.identifier),
+      seq(field("name", $.identifier), ":", field("type", $.expression))
+    )),
+
+    typed_name_list: $ => commaSep1($.typed_name),
+
     //
     // Expressions
     //
-    
+
     _expressions: $ => choice($.expression, $.sequence_expression),
 
     expression: $ => choice(
@@ -248,9 +331,10 @@ module.exports = grammar({
       $.ternary_expression,
       $.update_expression
     ),
-    
+
     primary_expression: $ => choice(
       $.subscript_expression,
+      $.double_subscript_expression,
       $.parenthesized_expression,
       $.member_expression,
       $.identifier,
@@ -258,14 +342,16 @@ module.exports = grammar({
       $.number,
       $.true,
       $.false,
+      $.none,
       $.array,
-      $.call_expression
+      $.call_expression,
+      $.lambda_expression,
     ),
-    
+
     array: $ => seq("[", commaSep1(optional($.expression)), "]"),
-    
+
     parenthesized_expression: $ => seq("(", $._expressions, ")"),
-     
+
     call_expression: $ =>
       choice(
         prec(
@@ -276,8 +362,8 @@ module.exports = grammar({
           )
         )
       ),
-    
-    member_expression: $ => 
+
+    member_expression: $ =>
       prec(
         "call",
         seq(
@@ -289,7 +375,7 @@ module.exports = grammar({
           )
         )
       ),
-    
+
     subscript_expression: $ =>
       prec.right(
         "call",
@@ -300,8 +386,30 @@ module.exports = grammar({
           "]"
         )
       ),
- 
-    assignment_expression: $ => 
+
+    double_subscript_expression: $ =>
+      prec(
+        "double_subscript",
+        seq(
+          field("object", $.expression),
+          "[", "[",
+          field("indices", commaSep1($.number)),
+          "]", "]"
+        )
+      ),
+
+    lambda_expression: $ => seq(
+      "function",
+      field("parameters", $.function_parameters),
+      optional(field("return_type", $.function_return_types)),
+      field("body", $.statement_block)
+    ),
+
+    // l2v, mapstring, unit, location, stattxttbl, varray, list are parsed as
+    // regular call_expressions since making them keywords would prevent their
+    // use as identifiers (e.g. `var unit = 0; unit += 1;`).
+
+    assignment_expression: $ =>
       prec.right(
         "assign",
         seq(
@@ -310,7 +418,7 @@ module.exports = grammar({
           field("right", $.expression)
         )
       ),
-    
+
     augmented_assignment_expression: $ =>
       prec.right(
         "assign",
@@ -334,7 +442,7 @@ module.exports = grammar({
         )
       ),
 
-    ternary_expression: $ => 
+    ternary_expression: $ =>
       prec.right(
         "ternary",
         seq(
@@ -343,9 +451,9 @@ module.exports = grammar({
           field("consequence", $.expression),
           ":",
           field("alternative", $.expression)
-        ) 
+        )
       ),
- 
+
     binary_expression: $ =>
       choice(
         ...[
@@ -380,7 +488,7 @@ module.exports = grammar({
           )
         )
       ),
-    
+
     unary_expression: $ => choice(
       prec.right(
         "unary_void",
@@ -399,7 +507,7 @@ module.exports = grammar({
         choice(
           seq(
             field("argument", $.expression),
-            field("operator", choice("++", "--")) 
+            field("operator", choice("++", "--"))
           ),
           seq(
             field("operator", choice("++", "--")),
@@ -408,11 +516,13 @@ module.exports = grammar({
         )
       )
     ),
-    
+
     sequence_expression: $ => prec.right(commaSep1($.expression)),
 
-    function_call_expression: $ => seq("pnpm"),
-    
+    keyword_argument: $ => prec(1, seq(
+      field("name", $.identifier), "=", field("value", $.expression)
+    )),
+
     initializer: $ => seq(
       "=",
       commaSep1(field("value", $.expression))
@@ -428,7 +538,7 @@ module.exports = grammar({
 
       return token(seq(alpha, repeat(alphaNumeric)));
     },
-    
+
     string: $ => seq(
       choice(
         seq(
@@ -453,10 +563,10 @@ module.exports = grammar({
         )
       ),
     ),
-    
+
     unescaped_double_string_fragment: _ =>
       token.immediate(prec(1, /[^"\\\r\n]+/)),
-    
+
     unescaped_single_string_fragment: _ =>
       token.immediate(prec(1, /[^'\\\r\n]+/)),
 
@@ -487,9 +597,9 @@ module.exports = grammar({
         choice("0x", "0X"),
         /[\da-fA-F](_?[\da-fA-F])*/,
       );
-      const binaryLiteral = seq(choice("0b, 0B"), /[0-1](_?[0-1]*)/);
+      const binaryLiteral = seq(choice("0b", "0B"), /[0-1](_?[0-1]*)/);
       const decimalLiteral = seq(/\d(_?\d)*/);
-      
+
       return token(
         choice(
           hexLiteral,
@@ -497,21 +607,22 @@ module.exports = grammar({
           decimalLiteral
         )
       )
-    }, 
+    },
 
-    true: _ => "true",
-    false: _ => "false",
-      
+    true: _ => choice("true", "True"),
+    false: _ => choice("false", "False"),
+    none: _ => "None",
+
     _semicolon: _ => ";",
 
     names: $ => commaSep1($.identifier),
-  
+
     //
     // Expression Components
     //
 
     arguments: $ =>
-      seq("(", commaSep(optional($.expression)), ")")
+      seq("(", commaSep(optional(choice($.keyword_argument, $.expression))), ")")
   },
 });
 
