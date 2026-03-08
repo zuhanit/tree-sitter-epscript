@@ -21,7 +21,7 @@ import A.B;
     (dotted_name
       (identifier)
       (identifier))))
-          
+
 ==========================
 Relative import statement
 ==========================
@@ -69,7 +69,7 @@ If statements
 
 if (x)
   log(y);
-  
+
 if (a.b) {
   log(c);
   d;
@@ -205,9 +205,12 @@ for (var a, b = 0; a < 10; a++);
 
 (program
       (for_statement
-        initializer: (variable_declaration
-          name: (identifier)
-          name: (identifier)
+        initializer: (var_assign_declaration
+          (typed_name_list
+            (typed_name
+              name: (identifier))
+            (typed_name
+              name: (identifier)))
           (initializer
             value: (number)))
         condition: (expression_statement
@@ -217,7 +220,7 @@ for (var a, b = 0; a < 10; a++);
         increment: (update_expression
           argument: (identifier))
         body: (empty_statement)))
-        
+
 ============================================
 Foreach statements
 ============================================
@@ -237,14 +240,14 @@ foreach (a, b : c, d) {
           (identifier)
           (identifier))
         body: (statement_block)))
-        
+
 ============================================
 While statements
 ============================================
 
 while (a)
   b();
-  
+
 while (a) {
 
 }
@@ -263,3 +266,31 @@ while (a) {
         condition: (parenthesized_expression
           (identifier))
         body: (statement_block)))
+
+============================================
+Once statements
+============================================
+
+once { var a = 0; }
+once (x > 0) { y = 1; }
+
+---
+
+(program
+      (once_statement
+        body: (statement_block
+          (var_assign_declaration
+            (typed_name_list
+              (typed_name
+                name: (identifier)))
+            (initializer
+              value: (number)))))
+      (once_statement
+        condition: (binary_expression
+          left: (identifier)
+          right: (number))
+        body: (statement_block
+          (expression_statement
+            (assignment_expression
+              left: (identifier)
+              right: (number))))))

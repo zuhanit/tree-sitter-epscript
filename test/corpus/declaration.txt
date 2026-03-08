@@ -4,21 +4,29 @@ Variable Declaration
 
 var a;
 var a, b = 1, 2;
-const c;
+const c = 0;
 
 ---
 
 (program
-      (variable_declaration
-        name: (identifier))
-      (variable_declaration
-        name: (identifier)
-        name: (identifier)
+      (var_declaration
+        (typed_name_list
+          (typed_name
+            name: (identifier))))
+      (var_assign_declaration
+        (typed_name_list
+          (typed_name
+            name: (identifier))
+          (typed_name
+            name: (identifier)))
         (initializer
           value: (number)
           value: (number)))
-      (variable_declaration
-        name: (identifier)))
+      (const_declaration
+        (names
+          (identifier))
+        (initializer
+          value: (number))))
 
 ==========================
 Array Declaration
@@ -29,10 +37,132 @@ const a = [1, 2, 3];
 ---
 
 (program
-  (variable_declaration
-    (identifier)
+  (const_declaration
+    (names
+      (identifier))
     (initializer
-      (array
+      value: (array
         (number)
         (number)
         (number)))))
+
+==========================
+Function Declaration
+==========================
+
+function foo(a, b: EUDArray): EUDArray {
+}
+
+---
+
+(program
+  (function_declaration
+    name: (identifier)
+    parameters: (function_parameters
+      (typed_name_list
+        (typed_name
+          name: (identifier))
+        (typed_name
+          name: (identifier)
+          type: (identifier))))
+    return_type: (function_return_types
+      (identifier))
+    body: (statement_block)))
+
+==========================
+Function Forward Declaration
+==========================
+
+function foo(a, b);
+
+---
+
+(program
+  (function_forward_declaration
+    name: (identifier)
+    parameters: (function_parameters
+      (typed_name_list
+        (typed_name
+          name: (identifier))
+        (typed_name
+          name: (identifier))))))
+
+==========================
+Object Declaration
+==========================
+
+object MyObj {
+  var x;
+  var y: EUDArray;
+  function len() {}
+};
+
+---
+
+(program
+  (object_declaration
+    name: (identifier)
+    (object_member
+      (object_field_declaration
+        declarators: (typed_name_list
+          (typed_name
+            name: (identifier)))))
+    (object_member
+      (object_field_declaration
+        declarators: (typed_name_list
+          (typed_name
+            name: (identifier)
+            type: (identifier)))))
+    (object_member
+      (object_method_declaration
+        name: (identifier)
+        parameters: (function_parameters)
+        body: (statement_block)))))
+
+==========================
+Object with Extends
+==========================
+
+object V2 extends EUDStruct {
+  var x;
+};
+
+---
+
+(program
+  (object_declaration
+    name: (identifier)
+    superclass: (identifier)
+    (object_member
+      (object_field_declaration
+        declarators: (typed_name_list
+          (typed_name
+            name: (identifier)))))))
+
+==========================
+Object Forward Declaration
+==========================
+
+object Foo;
+
+---
+
+(program
+  (object_forward_declaration
+    name: (identifier)))
+
+==========================
+Static Var Declaration
+==========================
+
+static var x = 0;
+
+---
+
+(program
+  (static_var_declaration
+    (typed_name_list
+      (typed_name
+        name: (identifier)))
+    (initializer
+      value: (number))))

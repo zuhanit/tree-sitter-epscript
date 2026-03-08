@@ -167,7 +167,7 @@ x > y;
         (binary_expression
           (identifier)
           (identifier))))
-          
+
 ==========================
 Assignments
 ==========================
@@ -284,3 +284,78 @@ Forward slashes after parenthesized expression
               (arguments)))
           (number)))
       (number))))
+
+==========================
+Lambda expression
+==========================
+
+const f = function(x) { return x; };
+
+---
+
+(program
+  (const_declaration
+    (names
+      (identifier))
+    (initializer
+      value: (lambda_expression
+        parameters: (function_parameters
+          (typed_name_list
+            (typed_name
+              name: (identifier))))
+        body: (statement_block
+          (return_statement
+            (identifier)))))))
+
+==========================
+Keyword arguments
+==========================
+
+foo(a=1, b=2);
+
+---
+
+(program
+  (expression_statement
+    (call_expression
+      function: (identifier)
+      arguments: (arguments
+        (keyword_argument
+          name: (identifier)
+          value: (number))
+        (keyword_argument
+          name: (identifier)
+          value: (number))))))
+
+==========================
+None literal
+==========================
+
+None;
+
+---
+
+(program
+  (expression_statement
+    (none)))
+
+==========================
+True and False
+==========================
+
+true;
+True;
+false;
+False;
+
+---
+
+(program
+  (expression_statement
+    (true))
+  (expression_statement
+    (true))
+  (expression_statement
+    (false))
+  (expression_statement
+    (false)))
