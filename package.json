@@ -29,12 +29,12 @@
     "cli-table3": "^0.6.5",
     "node-addon-api": "^8.6.0",
     "prebuildify": "^6.0.0",
+    "tree-sitter": "^0.21.1",
     "tree-sitter-cli": "^0.22.6",
     "tsx": "^4.21.0"
   },
   "dependencies": {
-    "node-gyp-build": "^4.8.0",
-    "tree-sitter": "^0.21.1"
+    "node-gyp-build": "^4.8.0"
   },
   "peerDependencies": {
     "tree-sitter": "^0.21.0"
