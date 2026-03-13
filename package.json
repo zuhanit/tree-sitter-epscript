@@ -9,6 +9,7 @@
     "prebuildify": "prebuildify --napi --strip",
     "generate": "tree-sitter generate",
     "test": "tree-sitter test",
+    "test:parse": "tsx test/parse_all.ts",
     "parse": "tree-sitter parse"
   },
   "keywords": [],
@@ -28,7 +29,8 @@
     "cli-table3": "^0.6.5",
     "node-addon-api": "^8.6.0",
     "prebuildify": "^6.0.0",
-    "tree-sitter-cli": "^0.22.6"
+    "tree-sitter-cli": "^0.22.6",
+    "tsx": "^4.21.0"
   },
   "dependencies": {
     "node-gyp-build": "^4.8.0",

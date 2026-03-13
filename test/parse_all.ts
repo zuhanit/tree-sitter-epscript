@@ -2,15 +2,26 @@ import { readdirSync, readFileSync } from "fs";
 import Parser from "tree-sitter";
 import EpScript from "..";
 
-
 const parser = new Parser();
 parser.setLanguage(EpScript);
 
-const epsFiles = readdirSync("test/fixtures");
+let hasError = false;
+const epsFiles = readdirSync("test/fixtures").filter((f) => f.endsWith(".eps"));
+
 for (const fileName of epsFiles) {
-  const fileBuffer = readFileSync(`test/fixtures/${fileName}`);
-  const content = fileBuffer.toString();
+  const content = readFileSync(`test/fixtures/${fileName}`, "utf-8");
   const tree = parser.parse(content);
 
-  console.log(fileName, tree.rootNode.hasError);
+  if (tree.rootNode.hasError) {
+    hasError = true;
+    const errors = tree.rootNode.descendantsOfType("ERROR");
+    console.error(`FAIL ${fileName} (${errors.length} error(s))`);
+    for (const e of errors) {
+      console.error(`  line ${e.startPosition.row + 1}: ${e.text.slice(0, 50)}`);
+    }
+  } else {
+    console.log(`OK   ${fileName}`);
+  }
 }
+
+process.exit(hasError ? 1 : 0);

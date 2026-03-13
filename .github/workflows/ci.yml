@@ -42,3 +42,5 @@ jobs:
         run: npx tree-sitter generate
       - name: Run tests
         run: npx tree-sitter test
+      - name: Parse fixture files
+        run: npx tsx test/parse_all.ts
