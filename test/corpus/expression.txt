@@ -182,37 +182,31 @@ x &= 0;
 ---
 
 (program
-  (expression_statement
-    (assignment_expression
-      (identifier)
-      (number)))
-  (expression_statement
-    (assignment_expression
-      (member_expression
-        (identifier)
-        (property_identifier))
-      (number)))
-  (expression_statement
-    (assignment_expression
-      (subscript_expression
-        (identifier)
-        (string
-          (string_fragment)))
-      (number)))
-  (expression_statement
-    (assignment_expression
-      (parenthesized_expression
-        (identifier))
-      (number)))
-  (expression_statement
-    (augmented_assignment_expression
-      (parenthesized_expression
-        (identifier))
-      (number)))
-  (expression_statement
-    (augmented_assignment_expression
-      (identifier)
-      (number))))
+  (assign_statement
+    left: (identifier)
+    right: (number))
+  (assign_statement
+    left: (member_expression
+      object: (identifier)
+      property: (property_identifier))
+    right: (number))
+  (assign_statement
+    left: (subscript_expression
+      object: (identifier)
+      index: (string
+        (string_fragment)))
+    right: (number))
+  (assign_statement
+    left: (parenthesized_expression
+      (identifier))
+    right: (number))
+  (assign_statement
+    left: (parenthesized_expression
+      (identifier))
+    right: (number))
+  (assign_statement
+    left: (identifier)
+    right: (number)))
 
 ==========================
 Assignments
@@ -227,28 +221,27 @@ x.y = some.condition ?
 ---
 
 (program
-      (expression_statement
-        (ternary_expression
-          (identifier)
-          (identifier)
-          (identifier)))
-      (expression_statement
-        (assignment_expression
-          (member_expression
-            (identifier)
-            (property_identifier))
-          (ternary_expression
-            (member_expression
-              (identifier)
-              (property_identifier))
-            (member_expression
-              (identifier)
-              (property_identifier))
-            (member_expression
-              (member_expression
-                (identifier)
-                (property_identifier))
-              (property_identifier))))))
+  (expression_statement
+    (ternary_expression
+      condition: (identifier)
+      consequence: (identifier)
+      alternative: (identifier)))
+  (assign_statement
+    left: (member_expression
+      object: (identifier)
+      property: (property_identifier))
+    right: (ternary_expression
+      condition: (member_expression
+        object: (identifier)
+        property: (property_identifier))
+      consequence: (member_expression
+        object: (identifier)
+        property: (property_identifier))
+      alternative: (member_expression
+        object: (member_expression
+          object: (identifier)
+          property: (property_identifier))
+        property: (property_identifier)))))
 
 ==========================
 Forward slashes after parenthesized expression

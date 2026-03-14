@@ -213,10 +213,9 @@ for (var a, b = 0; a < 10; a++);
               name: (identifier)))
           (initializer
             value: (number)))
-        condition: (expression_statement
-          (binary_expression
-            left: (identifier)
-            right: (number)))
+        condition: (binary_expression
+          left: (identifier)
+          right: (number))
         increment: (update_expression
           argument: (identifier))
         body: (empty_statement)))
@@ -290,7 +289,6 @@ once (x > 0) { y = 1; }
           left: (identifier)
           right: (number))
         body: (statement_block
-          (expression_statement
-            (assignment_expression
-              left: (identifier)
-              right: (number))))))
+          (assign_statement
+            left: (identifier)
+            right: (number)))))

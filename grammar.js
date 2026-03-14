@@ -21,7 +21,6 @@ module.exports = grammar({
   ],
 
   supertypes: $ => [
-    $.statement,
     $.declaration,
     $.expression,
     $.primary_expression
@@ -33,7 +32,6 @@ module.exports = grammar({
 
   conflicts: $ => [
     [$.once_statement, $.parenthesized_expression],
-    [$.typed_name, $.assignment_expression],
     [$.primary_expression, $.double_subscript_expression],
   ],
 
@@ -55,17 +53,15 @@ module.exports = grammar({
       "logical_or",
       "ternary"
     ],
-    ["assign", $.primary_expression],
     [$.import_statement, "import"],
     [$.primary_expression, $.statement_block, "object"],
     ["declaration", "literal"],
   ],
 
   rules: {
-    program: ($) => repeat($.statement),
+    program: ($) => repeat($._statement),
 
     declaration: $ => choice(
-      $.function_declaration,
       $.function_forward_declaration,
       $.object_declaration,
       $.object_forward_declaration,
@@ -97,10 +93,11 @@ module.exports = grammar({
     // Statements
     //
 
-    statement: ($) => choice(
+    _statement: ($) => choice(
       $.import_statement,
 
-      $.declaration,
+      seq($.declaration, $._semicolon),
+      $.function_declaration,
       $.statement_block,
       // In original epScript, solely use expression is invalid. You can comment this statement
       // for parse actually in epScript.
@@ -123,16 +120,19 @@ module.exports = grammar({
       // Once Statement
       $.once_statement,
 
+      // Assignment Statements
+      seq($.assign_statement, $._semicolon),
+
       $.empty_statement
     ),
 
     expression_statement: $ => seq($._expressions, $._semicolon),
 
-    else_clause: $ => seq("else", $.statement),
+    else_clause: $ => seq("else", $._statement),
 
     statement_block: $ =>
       prec.right(
-        seq("{", repeat($.statement), "}")
+        seq("{", repeat($._statement), "}")
       ),
 
     if_statement: $ => seq(
@@ -140,7 +140,7 @@ module.exports = grammar({
         seq(
           "if",
           field("condition", $.parenthesized_expression),
-          field("consequence", $.statement),
+          field("consequence", $._statement),
           optional(field("alternative", $.else_clause)),
         )
       )
@@ -155,11 +155,11 @@ module.exports = grammar({
         "case",
         field("value", $._expressions),
         ":",
-        field("body", repeat($.statement))
+        field("body", repeat($._statement))
       ),
 
     switch_default: $ =>
-      seq("default", ":", field("body", repeat($.statement))),
+      seq("default", ":", field("body", repeat($._statement))),
 
     switch_statement: $ => seq(
       seq(
@@ -173,7 +173,7 @@ module.exports = grammar({
       seq(
         "while",
         field("condition", $.parenthesized_expression),
-        field("body", $.statement)
+        field("body", $._statement)
       ),
 
     foreach_statement: $ =>
@@ -184,7 +184,7 @@ module.exports = grammar({
         ":",
         field("generator", $._expressions),
         ")",
-        field("body", $.statement)
+        field("body", $._statement)
       ),
 
     for_statement: $ =>
@@ -193,18 +193,28 @@ module.exports = grammar({
         "(",
         field(
           "initializer",
-          choice(
+          optional(choice(
             $.var_declaration,
             $.var_assign_declaration,
             $.const_declaration,
-            $.empty_statement
-          )
+            $.assign_statement,
+          ))
         ),
-        field("condition", choice($.expression_statement, $.empty_statement)),
-        field("increment", optional($._expressions)),
+        $._semicolon,
+        field("condition", optional($.expression)),
+        $._semicolon,
+        field("increment", optional($._for_increment)),
         ")",
-        field("body", $.statement)
+        field("body", $._statement)
       ),
+
+    // For loop increment: comma-separated call/assignment actions, no semicolon.
+    // Mirrors lemon's for_action_stmt: funcexprStmt | assign_stmt (incl. ++/--)
+    _for_increment: $ => commaSep1(choice(
+      $.call_expression,
+      $.update_expression,
+      $.assign_statement,
+    )),
 
     return_statement: $ =>
       seq("return", optional($._expressions), $._semicolon),
@@ -224,8 +234,8 @@ module.exports = grammar({
       ),
 
     once_statement: $ => choice(
-      seq("once", "(", field("condition", $.expression), ")", field("body", $.statement)),
-      seq("once", field("body", $.statement)),
+      seq("once", "(", field("condition", $.expression), ")", field("body", $._statement)),
+      seq("once", field("body", $._statement)),
     ),
 
     empty_statement: _ => ";",
@@ -248,7 +258,6 @@ module.exports = grammar({
       field("name", $.identifier),
       field("parameters", $.function_parameters),
       optional(field("return_type", $.function_return_types)),
-      $._semicolon
     ),
 
     function_parameters: $ => seq("(", optional($.typed_name_list), ")"),
@@ -262,14 +271,12 @@ module.exports = grammar({
       "{",
       repeat($.object_member),
       "}",
-      $._semicolon
     ),
 
     object_forward_declaration: $ => seq(
       "object",
       field("name", $.identifier),
       optional(seq("extends", field("superclass", $.expression))),
-      $._semicolon
     ),
 
     object_member: $ => choice(
@@ -291,22 +298,22 @@ module.exports = grammar({
 
     // var a, b;  (no initializer)
     var_declaration: $ => seq(
-      "var", $.typed_name_list, $._semicolon
+      "var", $.typed_name_list
     ),
 
     // var a, b = 1, 2;  (with initializer)
     var_assign_declaration: $ => seq(
-      "var", $.typed_name_list, $.initializer, $._semicolon
+      "var", $.typed_name_list, $.initializer
     ),
 
     // static var a, b = 1, 2;  (static requires initializer)
     static_var_declaration: $ => seq(
-      "static", "var", $.typed_name_list, $.initializer, $._semicolon
+      "static", "var", $.typed_name_list, $.initializer
     ),
 
     // const a, b = 1, 2;  (const uses names only, requires initializer)
     const_declaration: $ => seq(
-      "const", $.names, $.initializer, $._semicolon
+      "const", $.names, $.initializer
     ),
 
     typed_name: $ => prec(1, choice(
@@ -324,8 +331,6 @@ module.exports = grammar({
 
     expression: $ => choice(
       $.primary_expression,
-      $.assignment_expression,
-      $.augmented_assignment_expression,
       $.unary_expression,
       $.binary_expression,
       $.ternary_expression,
@@ -409,38 +414,11 @@ module.exports = grammar({
     // regular call_expressions since making them keywords would prevent their
     // use as identifiers (e.g. `var unit = 0; unit += 1;`).
 
-    assignment_expression: $ =>
-      prec.right(
-        "assign",
-        seq(
-          field("left", $.expression),
-          "=",
-          field("right", $.expression)
-        )
-      ),
-
-    augmented_assignment_expression: $ =>
-      prec.right(
-        "assign",
-        seq(
-          field("left", $.expression),
-          field("operator",
-            choice(
-              "+=",
-              "-=",
-              "*=",
-              "/=",
-              "%=",
-              "<<=",
-              ">>=",
-              "&=",
-              "^=",
-              "|="
-            )
-          ),
-          field("right", $.expression)
-        )
-      ),
+    assign_statement: $ => seq(
+      field("left", $.expression),
+      field("operator", choice("=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", "&=", "^=", "|=")),
+      field("right", $.expression),
+    ),
 
     ternary_expression: $ =>
       prec.right(
@@ -555,8 +533,8 @@ module.exports = grammar({
           choice("'", "b'"),
           repeat(
             choice(
-                alias($.unescaped_single_string_fragment, $.string_fragment),
-                $.escape_sequence
+              alias($.unescaped_single_string_fragment, $.string_fragment),
+              $.escape_sequence
             )
           ),
           "'"

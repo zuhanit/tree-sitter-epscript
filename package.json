@@ -7,7 +7,11 @@
   "author": "Joo Han, Ham <zuhanit3@gmail.com>",
   "main": "bindings/node",
   "types": "bindings/node",
-  "keywords": ["tree-sitter", "parser", "epscript"],
+  "keywords": [
+    "tree-sitter",
+    "parser",
+    "epscript"
+  ],
   "files": [
     "grammar.js",
     "binding.gyp",
@@ -45,5 +49,11 @@
     "test": "tree-sitter test",
     "test:parse": "tsx test/parse_all.ts",
     "parse": "tree-sitter parse"
-  }
+  },
+  "tree-sitter": [
+    {
+      "scope": "source.epscript",
+      "injection-regex": "^epscript$"
+    }
+  ]
 }
