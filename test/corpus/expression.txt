@@ -175,37 +175,31 @@ Assignments
 x = 0;
 x.y = 0;
 x["y"] = 0;
-(x) = 1;
-(x) += 1;
 x &= 0;
 
 ---
 
 (program
   (assign_statement
-    left: (identifier)
-    right: (number))
-  (assign_statement
-    left: (member_expression
-      object: (identifier)
-      property: (property_identifier))
-    right: (number))
-  (assign_statement
-    left: (subscript_expression
-      object: (identifier)
-      index: (string
-        (string_fragment)))
-    right: (number))
-  (assign_statement
-    left: (parenthesized_expression
+    left: (lhs_expression
       (identifier))
     right: (number))
   (assign_statement
-    left: (parenthesized_expression
-      (identifier))
+    left: (lhs_expression
+      (member_expression
+        object: (identifier)
+        property: (property_identifier)))
     right: (number))
   (assign_statement
-    left: (identifier)
+    left: (lhs_expression
+      (subscript_expression
+        object: (identifier)
+        index: (string
+          (string_fragment))))
+    right: (number))
+  (assign_statement
+    left: (lhs_expression
+      (identifier))
     right: (number)))
 
 ==========================
@@ -227,9 +221,10 @@ x.y = some.condition ?
       consequence: (identifier)
       alternative: (identifier)))
   (assign_statement
-    left: (member_expression
-      object: (identifier)
-      property: (property_identifier))
+    left: (lhs_expression
+      (member_expression
+        object: (identifier)
+        property: (property_identifier)))
     right: (ternary_expression
       condition: (member_expression
         object: (identifier)

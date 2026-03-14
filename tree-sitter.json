@@ -1,0 +1,24 @@
+{
+  "grammars": [
+    {
+      "name": "epscript",
+      "camelcase": "epScript",
+      "scope": "source.epscript",
+      "injection-regex": "^epscript$",
+      "file-types": ["eps"]
+    }
+  ],
+  "metadata": {
+    "version": "1.0.0",
+    "license": "MIT",
+    "authors": [
+      {
+        "name": "Joo Han, Ham",
+        "email": "zuhanit3@gmail.com"
+      }
+    ],
+    "links": {
+      "repository": "https://github.com/zuhanit/tree-sitter-epscript"
+    }
+  }
+}

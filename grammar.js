@@ -33,6 +33,9 @@ module.exports = grammar({
   conflicts: $ => [
     [$.once_statement, $.parenthesized_expression],
     [$.primary_expression, $.double_subscript_expression],
+    [$.assign_statement, $.sequence_expression],
+    [$.lhs_expression, $.primary_expression],
+    [$.assign_statement],
   ],
 
   precedences: $ => [
@@ -414,10 +417,26 @@ module.exports = grammar({
     // regular call_expressions since making them keywords would prevent their
     // use as identifiers (e.g. `var unit = 0; unit += 1;`).
 
-    assign_statement: $ => seq(
-      field("left", $.expression),
-      field("operator", choice("=", "+=", "-=", "*=", "/=", "%=", "<<=", ">>=", "&=", "^=", "|=")),
-      field("right", $.expression),
+    // lvalue: NAME | expr[expr] | expr.NAME  (mirrors lemon)
+    lhs_expression: $ => choice(
+      $.identifier,
+      $.subscript_expression,
+      $.member_expression,
+    ),
+
+    assign_statement: $ => choice(
+      // a, b = x, y  (multi-lvalue assignment)
+      seq(
+        commaSep1(field("left", $.lhs_expression)),
+        "=",
+        commaSep1(field("right", $.expression)),
+      ),
+      // a += x  (augmented assignment, single lvalue only)
+      seq(
+        field("left", $.lhs_expression),
+        field("operator", choice("+=", "-=", "*=", "/=", "%=", "<<=", ">>=", "&=", "^=", "|=")),
+        field("right", $.expression),
+      ),
     ),
 
     ternary_expression: $ =>

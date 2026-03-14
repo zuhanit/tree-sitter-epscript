@@ -290,5 +290,6 @@ once (x > 0) { y = 1; }
           right: (number))
         body: (statement_block
           (assign_statement
-            left: (identifier)
+            left: (lhs_expression
+              (identifier))
             right: (number)))))
