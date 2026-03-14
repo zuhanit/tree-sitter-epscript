@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>epScript Playground</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Azeret+Mono:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f7f6f3;
+    --surface: #ffffff;
+    --border: #e2e0d9;
+    --border-bright: #c8c5bc;
+    --text: #2c2a25;
+    --text-dim: #9b9890;
+    --accent: #b85c00;
+    --accent-dim: #f0d4b8;
+    --green: #1a6e3c;
+    --green-dim: #d4ead9;
+    --blue: #1a4a8a;
+    --blue-dim: #d4e0f0;
+    --red: #c0392b;
+    --font: 'Azeret Mono', monospace;
+  }
+
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--font); overflow: hidden; }
+
+  header {
+    height: 44px;
+    border-bottom: 1px solid var(--border);
+    display: flex; align-items: center;
+    padding: 0 20px; gap: 12px;
+    background: var(--surface);
+  }
+
+  .logo { font-size: 11px; font-weight: 600; letter-spacing: 0.2em; text-transform: uppercase; color: var(--accent); }
+  .logo-sep { color: var(--text-dim); font-size: 11px; }
+  .logo-sub { font-size: 11px; color: var(--text-dim); letter-spacing: 0.1em; }
+
+  .status-pill {
+    margin-left: auto; display: flex; align-items: center; gap: 6px;
+    font-size: 10px; letter-spacing: 0.12em; color: var(--text-dim); text-transform: uppercase;
+  }
+  .status-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-dim); transition: background 0.2s; }
+  .status-pill.ready .status-dot { background: var(--green); box-shadow: 0 0 6px rgba(26,110,60,0.4); }
+  .status-pill.compiling .status-dot { background: var(--accent); box-shadow: 0 0 6px rgba(184,92,0,0.4); animation: pulse 0.6s ease-in-out infinite alternate; }
+  .status-pill.error .status-dot { background: var(--red); box-shadow: 0 0 6px rgba(192,57,43,0.4); }
+  @keyframes pulse { from { opacity: 0.4; } to { opacity: 1; } }
+
+  /* Tab bar */
+  .tabs {
+    display: flex; border-bottom: 1px solid var(--border);
+    background: var(--surface); height: 36px;
+  }
+  .tab {
+    padding: 0 18px; display: flex; align-items: center;
+    font-size: 10px; letter-spacing: 0.15em; text-transform: uppercase;
+    color: var(--text-dim); cursor: pointer; border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s; user-select: none;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+  main { display: flex; height: calc(100vh - 80px); }
+
+  .pane { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+  .pane-header {
+    height: 32px; display: flex; align-items: center; padding: 0 16px;
+    font-size: 10px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase;
+    color: var(--text-dim); border-bottom: 1px solid var(--border); background: var(--surface); flex-shrink: 0;
+  }
+  .pane-header .lang-tag {
+    margin-left: auto; padding: 2px 6px; border-radius: 3px; font-size: 9px; letter-spacing: 0.08em;
+  }
+  .pane.left .pane-header .lang-tag { color: var(--accent); border: 1px solid var(--accent-dim); background: rgba(184,92,0,0.05); }
+  .pane.right.python .pane-header .lang-tag { color: var(--green); border: 1px solid var(--green-dim); background: rgba(26,110,60,0.05); }
+  .pane.right.ast .pane-header .lang-tag { color: var(--blue); border: 1px solid var(--blue-dim); background: rgba(26,74,138,0.05); }
+
+  .divider { width: 1px; background: var(--border); flex-shrink: 0; transition: background 0.3s; }
+  .divider.active { background: var(--accent); box-shadow: 0 0 12px rgba(184,92,0,0.25); }
+
+  textarea#input {
+    flex: 1; resize: none; border: none; outline: none;
+    background: #fdfcfa; color: var(--text);
+    font-family: var(--font); font-size: 13px; line-height: 1.7;
+    padding: 20px; tab-size: 4; caret-color: var(--accent);
+  }
+  textarea#input::selection { background: rgba(184,92,0,0.12); }
+  textarea#input::placeholder { color: var(--text-dim); }
+
+  pre#output {
+    flex: 1; overflow: auto; background: #f7f9f7;
+    font-family: var(--font); font-size: 13px; line-height: 1.7;
+    padding: 20px; color: var(--green); white-space: pre;
+  }
+  pre#output.error-state { color: var(--red); }
+  pre#output.empty-state { color: var(--text-dim); font-style: italic; }
+
+  /* AST panel */
+  #ast-panel {
+    flex: 1; overflow: auto; background: #f7f8fc;
+    position: relative; display: flex; flex-direction: column;
+  }
+  #ast-panel.empty { align-items: center; justify-content: center; }
+  #ast-panel.empty::after {
+    content: 'Parse Tree will appear here';
+    color: var(--text-dim); font-size: 11px; letter-spacing: 0.1em;
+    font-family: var(--font); font-style: italic;
+  }
+
+  /* AST text tree */
+  #ast-tree {
+    flex: 1; overflow: auto; background: #f7f8fc;
+    font-family: var(--font); font-size: 12px; line-height: 1.8;
+    padding: 20px; white-space: pre; color: var(--text);
+  }
+  #ast-tree .node-name { color: var(--blue); }
+  #ast-tree .leaf-name { color: var(--text-dim); }
+  #ast-tree .leaf-val { color: var(--accent); }
+
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border-bright); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--text-dim); }
+
+  /* Right pane content toggle */
+  .right-content { display: flex; flex-direction: column; flex: 1; overflow: hidden; min-width: 0; }
+  .right-content > * { display: none; }
+  .right-content > .visible { display: flex; flex: 1; flex-direction: column; overflow: hidden; }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">epScript</span>
+  <span class="logo-sep">/</span>
+  <span class="logo-sub">Playground</span>
+  <div class="status-pill ready" id="status">
+    <div class="status-dot"></div>
+    <span id="status-text">Ready</span>
+  </div>
+</header>
+<div class="tabs">
+  <div class="tab active" data-tab="python">Python Output</div>
+  <div class="tab" data-tab="ast">Parse Tree</div>
+</div>
+<main>
+  <div class="pane left">
+    <div class="pane-header">Input<span class="lang-tag">epScript</span></div>
+    <textarea id="input" spellcheck="false" placeholder="// Write epScript here&#10;var x = 1;"></textarea>
+  </div>
+  <div class="divider" id="divider"></div>
+  <div class="right-content">
+    <!-- Python tab -->
+    <div id="python-pane" class="pane right python visible">
+      <div class="pane-header">Output<span class="lang-tag">Python</span></div>
+      <pre id="output" class="empty-state">// Python output will appear here</pre>
+    </div>
+    <!-- AST tab -->
+    <div id="ast-pane" class="pane right ast">
+      <div class="pane-header">Parse Tree<span class="lang-tag">AST</span></div>
+      <div id="ast-panel" class="empty"><div id="ast-tree"></div></div>
+    </div>
+  </div>
+</main>
+
+<script>
+  const input = document.getElementById('input');
+  const output = document.getElementById('output');
+  const status = document.getElementById('status');
+  const statusText = document.getElementById('status-text');
+  const divider = document.getElementById('divider');
+  const astPanel = document.getElementById('ast-panel');
+
+  let currentTab = 'python';
+  let debounceTimer = null;
+  let lastTree = null;
+
+  // Tab switching
+  document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      currentTab = tab.dataset.tab;
+      document.getElementById('python-pane').classList.toggle('visible', currentTab === 'python');
+      document.getElementById('ast-pane').classList.toggle('visible', currentTab === 'ast');
+      if (currentTab === 'ast' && lastTree) renderAST(lastTree);
+    });
+  });
+
+  function setStatus(state, text) {
+    status.className = `status-pill ${state}`;
+    statusText.textContent = text;
+  }
+
+  // Build tree from shift/reduce events
+  function buildTree(events) {
+    const stack = [];
+    for (const e of events) {
+      if (e.t === 'S') {
+        stack.push({ name: e.tok, value: e.val, children: [], isLeaf: true });
+      } else if (e.t === 'R') {
+        const n = e.nrhs;
+        const children = n > 0 ? stack.splice(-n) : [];
+        // Parse rule: "lhs ::= rhs..." → extract lhs
+        const lhs = e.rule.split(' ::= ')[0].trim();
+        stack.push({ name: lhs, rule: e.rule, children, isLeaf: false });
+      }
+    }
+    // Wrap multiple roots under program node
+    if (stack.length === 1) return stack[0];
+    return { name: 'program', children: stack, isLeaf: false };
+  }
+
+  function renderTreeText(node, indent) {
+    const pad = '  '.repeat(indent);
+    let html = '';
+    if (node.isLeaf) {
+      html += `${pad}<span class="leaf-name">${node.name}</span>`;
+      if (node.value) html += ` <span class="leaf-val">"${node.value}"</span>`;
+    } else {
+      html += `${pad}<span class="node-name">${node.name}</span>`;
+      if (node.children && node.children.length > 0) {
+        for (const child of node.children) {
+          html += '\n' + renderTreeText(child, indent + 1);
+        }
+      }
+    }
+    return html;
+  }
+
+  function renderAST(tree) {
+    astPanel.classList.remove('empty');
+    const astTree = document.getElementById('ast-tree');
+    astTree.innerHTML = renderTreeText(tree, 0);
+  }
+
+  async function compile(code) {
+    if (!code.trim()) {
+      output.textContent = '// Python output will appear here';
+      output.className = 'empty-state';
+      astPanel.innerHTML = '';
+      astPanel.classList.add('empty');
+      setStatus('ready', 'Ready');
+      return;
+    }
+
+    setStatus('compiling', 'Compiling...');
+    divider.classList.add('active');
+
+    try {
+      const [compileRes, astRes] = await Promise.all([
+        fetch('/compile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) }),
+        fetch('/ast', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code }) }),
+      ]);
+
+      const [data, astData] = await Promise.all([compileRes.json(), astRes.json()]);
+
+      if (data.error) {
+        output.textContent = data.error;
+        output.className = 'error-state';
+        setStatus('error', 'Error');
+      } else {
+        output.textContent = data.result;
+        output.className = '';
+        setStatus('ready', data.errors > 0 ? `${data.errors} warning(s)` : 'OK');
+      }
+
+      if (astData.events && astData.events.length > 0) {
+        lastTree = buildTree(astData.events);
+      }
+    } catch (e) {
+      output.textContent = e.message;
+      output.className = 'error-state';
+      setStatus('error', 'Server error');
+    } finally {
+      divider.classList.remove('active');
+    }
+  }
+
+  input.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => compile(input.value), 400);
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Tab') {
+      e.preventDefault();
+      const start = input.selectionStart;
+      input.value = input.value.slice(0, start) + '    ' + input.value.slice(input.selectionEnd);
+      input.selectionStart = input.selectionEnd = start + 4;
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => compile(input.value), 400);
+    }
+  });
+</script>
+</body>
+</html>

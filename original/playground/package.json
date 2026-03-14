@@ -1,0 +1,12 @@
+{
+  "name": "epscript-playground",
+  "version": "1.0.0",
+  "description": "epScript → Python transpiler playground",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "koffi": "^2.9.0"
+  }
+}
